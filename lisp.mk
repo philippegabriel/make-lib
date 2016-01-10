@@ -22,3 +22,4 @@ all:
 	@printf "(car ((a b)(c d))=$(call car,$(call norm,((a b)(c d))))\n"
 	@printf "(cdr (a b))=$(call cdr,$(call norm,(a b)))\n"
 	@printf "(cdr ((a b)(c d))=$(call cdr,$(call norm,((a b)(c d))))\n"
+
