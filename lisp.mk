@@ -32,22 +32,26 @@ streq=$(and $(filter $(1),$(2)),$(filter $(2),$(1)))
 len=$(filter $(words $(2)),$(1))
 #bootstrap eval for Sexpr
 sevalparse=primitive:$(word 2,$(call expand,$(1))) arg:$(wordlist 3,$(call numdec,$(call expand,$(1))),$(call expand,$(1)))
-seval=$(call $(word 2,$(call expand,$(1))),$(wordlist 3,$(call numdec,$(call expand,$(1))),$(call expand,$(1))))
+seval=$(info Seval: $(1))$(subst ( ),(),$(call $(word 2,$(call expand,$(1))),$(wordlist 3,$(call numdec,$(call expand,$(1))),$(call expand,$(1)))))
+#seval=$(call $(word 2,$(call expand,$(1))),$(wordlist 3,$(call numdec,$(call expand,$(1))),$(call expand,$(1))))
 #These are the 7 primitives implemented with make intrinsyc functions
-quote=$(1)
+quote=$(info quote:$(1))$(1)
 atom=$(if $(call len,1,$(call seval,$(1))),t,())
-eq=$(if $(and $(call len,1,$(call seval,$(call getarg1,$(1)))),$(call len,1,$(call seval,$(call getarg2,$(1))))),$(if $(call streq,$(call seval,$(call getarg1,$(1))),$(call seval,$(call getarg2,$(1)))),t,()),())
-car=$(if $(filter $(word 2,$(call seval,$(1))),$(lp)),$(wordlist 2,$(words $(call getlist,.,$(call seval,$(1)),. .)),$(call seval,$(1))),$(word 2,$(call seval,$(1))))
-cdr=$(lp) $(wordlist $(if $(filter $(word 2,$(call seval,$(1))),$(lp)),$(words $(call getlist,.,$(call seval,$(1)),. .) .),3),$(words $(call seval,$(1))),$(call seval,$(1)))
-cons=$(lp) $(call seval,$(call getarg1,$(1))) $(call trim,$(call seval,$(call getarg2,$(1)))) $(rp)
+eq=$(info eq:$(1))$(if $(and $(call len,1,$(call seval,$(call getarg1,$(1)))),$(call len,1,$(call seval,$(call getarg2,$(1))))),$(if $(call streq,$(call seval,$(call getarg1,$(1))),$(call seval,$(call getarg2,$(1)))),t,()),())
+car=$(info car:$(1))$(if $(filter $(word 2,$(call seval,$(1))),$(lp)),$(wordlist 2,$(words $(call getlist,.,$(call seval,$(1)),. .)),$(call seval,$(1))),$(word 2,$(call seval,$(1))))
+cdr=$(info cdr:$(1))$(lp) $(wordlist $(if $(filter $(word 2,$(call seval,$(1))),$(lp)),$(words $(call getlist,.,$(call seval,$(1)),. .) .),3),$(words $(call seval,$(1))),$(call seval,$(1)))
+cons=$(info cons:$(1))$(lp) $(call seval,$(call getarg1,$(1))) $(call trim,$(call seval,$(call getarg2,$(1)))) $(rp)
 condparse=subarg1:[$(call getsubarg1,$(1))],subarg2:[$(call getsubarg2,$(1))],tail:[$(call gettail,$(1))]
-cond=$(if $(call streq,t,$(call seval,$(call getsubarg1,$(1)))),$(call seval,$(call getsubarg2,$(1))),$(call cond,$(call gettail,$(1))))
+cond=$(info cond:$(1))$(if $(call streq,t,$(call seval,$(call getsubarg1,$(1)))),$(call seval,$(call getsubarg2,$(1))),$(call cond,$(call gettail,$(1))))
 #Extra functions
-null=$(call seval,(eq $(1) (quote ())))
-andd=$(call seval,(cond ($(1) (cond ($(2) (quote t)) ((quote t) (quote ())))) ((quote t) (quote ()))))
+null=$(info null:$(1))$(call seval,(eq $(1) (quote ())))
 nott=$(call seval,(cond ($(1) (quote ()))((quote t)(quote t))))
 cadr=$(call seval,(car (cdr $(1))))
-#append=$(call seval,(cond ((null $(1)) $(2)) ((quote t) (cons (car $(1)) $(call append,(cdr $(1)),$(2))))))
+caar=$(call seval,(car (car $(1))))
+cdar=$(call seval,(cdr (car $(1))))
+andd=$(info andd:$(1))$(call seval,(cond ((car $(1)) (cond ((cadr $(1)) (quote t)) ((quote t) (quote ())))) ((quote t) (quote ()))))
+appenda=$(call seval,(cond ((eq (quote ()) $(1)) (quote (a)))((quote t)(cons (car $(1)) (appenda (cdr $(1)))))))
+append=$(call seval,(cond ((null (car $(1))) (cadr $(1))) ((quote t) (cons (caar $(1)) (append (cdar $(1)) (cadr $(1)))))))
 #
 all:
 	@printf "expand,(a b c)=$(call expand,(a b c))\n"
@@ -97,6 +101,7 @@ all:
 	@printf "(atom (car '((a b)(c d))))=>$(call seval,(atom (car (quote ((a b)(c d))))))<\n"
 	@printf "(eq (car '(a b)) (car '(a b)))=>$(call seval,(eq (car (quote (a b))) (car (quote (a b)))))<\n"
 	@printf "(eq (car '(a b)) (car '(c d)))=>$(call seval,(eq (car (quote (a b))) (car (quote (c d)))))<\n"
+	@printf "(cdr '(a))=$(call seval,(cdr (quote (a))))\n"
 	@printf "(cdr '(a b))=$(call seval,(cdr (quote (a b))))\n"
 	@printf "(cdr '((a b)(c d))=$(call seval,(cdr (quote ((a b)(c d)))))\n"
 	@printf "(cdr '(a b ()))=$(call seval,(cdr (quote (a b ()))))\n"
@@ -107,6 +112,7 @@ all:
 	@printf "(cons '(a b) '(c d))=$(call seval,(cons (quote (a b)) (quote (c d))))\n"
 	@printf "(cons '() '(c d))=$(call seval,(cons (quote ()) (quote (c d))))\n"
 	@printf "(cons '() '())=$(call seval,(cons (quote ()) (quote ())))\n"
+	@printf "(cons 'a '())=$(call seval,(cons (quote a) (quote ())))\n"
 	@printf "(getarg1 (f first)(t second))=$(call getarg1,$(call expand,(f first)(t second) ))\n"
 	@printf "(gettail (f first)(t second))=$(call gettail,$(call expand,(f first)(t second) ))\n"
 	@printf "(inxsubarg1 ((quote t) (quote first)))=$(call inxsubarg1,$(call expand,((quote t) (quote first))))\n"
@@ -119,9 +125,29 @@ all:
 	@printf "(null (quote a))=$(call seval,(null (quote a)))\n"
 	@printf "(nott (quote t))=$(call seval,(nott (quote t)))\n"
 	@printf "(nott (quote ()))=$(call seval,(nott (quote ())))\n"
-	@printf "(nott (quote ()))=$(call seval,(nott (quote ())))\n"
+	@printf "(cdr (quote (1)))=$(call seval,(cdr (quote (1))))\n"
+	@printf "(cdr (quote (a)))=$(call seval,(cdr (quote (a))))\n"
+	@printf "(eq (quote ()) (cdr (quote (a))))=$(call seval,(eq (quote ())(cdr (quote (a)))))\n"
+	@printf "(cdr (quote (a b)))=$(call seval,(cdr (quote (a b))))\n"
+	@printf "(cdr (cdr (quote (a b))))=$(call seval,(cdr (cdr (quote (a b)))))\n"
+	@printf "(cdr (cdr (quote (a b c))))=$(call seval,(cdr (cdr (quote (a b c)))))\n"
+	@printf "(cdr (quote (b )))=$(call seval,(cdr (quote (b ))))\n"
+	@printf "(eq (quote ()) (cdr (cdr (quote (a b)))))=$(call seval,(eq (quote ())(cdr (cdr (quote (a b))))))\n"
+	@printf "(appenda (quote (a b)))=$(call seval,(appenda (quote (a b))))\n"
+	@printf "(cadr (quote (a b)))=$(call seval,(cadr (quote (a b))))\n"
+	@printf "(car (quote (t t)))=$(call seval,(car (quote (t t))))\n"
+	@printf "(cadr (quote (t t)))=$(call seval,(cadr (quote (t t))))\n"
+	@printf "(andd (quote (t t)))=$(call seval,(andd (quote (t t))))\n"
+	@printf "(andd (quote (() t)))=$(call seval,(andd (quote (() t))))\n"
+	@printf "(andd (quote (t ())))=$(call seval,(andd (quote (t ()))))\n"
+	@printf "(andd (quote (() ())))=$(call seval,(andd (quote (() ()))))\n"
+	@printf "(null (car (quote (()(a b)))))=$(call seval,(null (car (quote (()(a b))))))\n"
+	@printf "(append (quote (()(a b))))=$(call seval,(append (quote (()(a b)))))\n"
+	@printf "(cadr (quote ((a b)(c d))))=$(call seval,(cadr (quote ((a b)(c d)))))\n"
+	@printf "(caar (quote ((a b)(c d))))=$(call seval,(caar (quote ((a b)(c d)))))\n"
+	@printf "(cdar (quote ((a b)(c d))))=$(call seval,(cdar (quote ((a b)(c d)))))\n"
+#	@printf "(append (quote ((a b)(c d))))=$(call seval,(append (quote ((a b)(c d)))))\n"
 rest:
 	@printf "(append (quote ())(quote (c d)))=$(call append,(quote ()),(quote (c d)))\n"
 	@printf "(append (quote (a b))(quote (c d)))=$(call append,(quote (a b)),(quote (c d)))\n"
 	@printf "(append (quote (a b))(quote (c d)))=$(call seval,(append (quote (a b))(quote (c d))))\n"
-	@printf "(andd (quote t) (quote t))=$(call seval,(andd (quote t) (quote t)))\n"
