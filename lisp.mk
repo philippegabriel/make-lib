@@ -51,7 +51,8 @@ caar=$(call seval,(car (car $(1))))
 cdar=$(call seval,(cdr (car $(1))))
 andd=$(info andd:$(1))$(call seval,(cond ((car $(1)) (cond ((cadr $(1)) (quote t)) ((quote t) (quote ())))) ((quote t) (quote ()))))
 appenda=$(call seval,(cond ((eq (quote ()) $(1)) (quote (a)))((quote t)(cons (car $(1)) (appenda (cdr $(1)))))))
-append=$(call seval,(cond ((null (car $(1))) (cadr $(1))) ((quote t) (cons (caar $(1)) (append (cdar $(1)) (cadr $(1)))))))
+list=$(call seval,(cond((null $(1)) (quote ()))((quote t)(cons(car $(1))(list (cdr $(1)))))))
+append=$(call seval,(cond ((null (car $(1))) (cadr $(1)))((quote t)(cons (caar $(1))(append (cons (cdar $(1))(cdr $(1))))))))
 #
 all:
 	@printf "expand,(a b c)=$(call expand,(a b c))\n"
@@ -146,8 +147,8 @@ all:
 	@printf "(cadr (quote ((a b)(c d))))=$(call seval,(cadr (quote ((a b)(c d)))))\n"
 	@printf "(caar (quote ((a b)(c d))))=$(call seval,(caar (quote ((a b)(c d)))))\n"
 	@printf "(cdar (quote ((a b)(c d))))=$(call seval,(cdar (quote ((a b)(c d)))))\n"
-#	@printf "(append (quote ((a b)(c d))))=$(call seval,(append (quote ((a b)(c d)))))\n"
-rest:
-	@printf "(append (quote ())(quote (c d)))=$(call append,(quote ()),(quote (c d)))\n"
-	@printf "(append (quote (a b))(quote (c d)))=$(call append,(quote (a b)),(quote (c d)))\n"
-	@printf "(append (quote (a b))(quote (c d)))=$(call seval,(append (quote (a b))(quote (c d))))\n"
+	@printf "(list (quote ()))=$(call seval,(list (quote ())))\n"
+	@printf "(list (quote (a b c)))=$(call seval,(list (quote (a b c))))\n"
+	@printf "(append (quote ((a b)(c d))))=$(call seval,(append (quote ((a b)(c d)))))\n"
+	@printf "(append (quote (()(c d))))=$(call seval,(append (quote (()(c d)))))\n"
+	@printf "(append (quote ((a b)())))=$(call seval,(append (quote ((a b)()))))\n"

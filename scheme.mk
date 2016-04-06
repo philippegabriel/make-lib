@@ -1,5 +1,5 @@
 .PHONY: all
-loadfile=init.scheme
+loadfile=init.lisp
 all:
 	mit-scheme --load $(loadfile)
  
