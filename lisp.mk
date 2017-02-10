@@ -44,6 +44,8 @@ cons=$(lp) $(call seval,$(call getarg1,$(1))) $(call trim,$(call seval,$(call ge
 condparse=subarg1:[$(call getsubarg1,$(1))],subarg2:[$(call getsubarg2,$(1))],tail:[$(call gettail,$(1))]
 cond=$(if $(call streq,t,$(call seval,$(call getsubarg1,$(1)))),$(call seval,$(call getsubarg2,$(1))),$(call cond,$(call gettail,$(1))))
 #Extra functions
+x=$(call getarg1,$(1))
+y=$(call getarg2,$(1))
 null=$(call seval,(eq $(1) (quote ())))
 nott=$(call seval,(cond ($(1) (quote ()))((quote t)(quote t))))
 cadr=$(call seval,(car (cdr $(1))))
@@ -51,15 +53,18 @@ caar=$(call seval,(car (car $(1))))
 cdar=$(call seval,(cdr (car $(1))))
 cadar=$(call seval,(car (cdr (car $(1)))))
 caddr=$(call seval,(car (cdr (cdr $(1)))))
-andd=$(call seval,(cond ((car $(1)) (cond ((cadr $(1)) (quote t)) ((quote t) (quote ())))) ((quote t) (quote ()))))
+#andd=$(call seval,(cond ((car $(1)) (cond ((cadr $(1)) (quote t)) ((quote t) (quote ())))) ((quote t) (quote ()))))
+andd=$(call seval,(cond ($(x) (cond ($(y) (quote t)) ((quote t) (quote ())))) ((quote t) (quote ()))))
 appenda=$(call seval,(cond ((eq (quote ()) $(1)) (quote (a)))((quote t)(cons (car $(1)) (appenda (cdr $(1)))))))
-list=$(call seval,(cond((null $(1)) (quote ()))((quote t)(cons(car $(1))(list (cdr $(1)))))))
-x=$(call getarg1,$(1))
-y=$(call getarg2,$(1))
 display=display:$(1)
+#list=$(call seval,(cond((null $(1)) (quote ()))((quote t)(cons(car $(1))(list (cdr $(1)))))))
+list=$(call seval,(cons $(x) (cons $(y) (quote ()))))
+pair=$(call seval,(cond ((andd (null $(x)) (null $(y))) (quote ())) ((andd (nott (atom $(x))) (nott (atom $(y)))) (cons (list (car $(x)) (car $(y))) (pair (cdr $(x)) (cdr $(y)))))))
+#pair=$(info x:$(x) y:$(y))$(call seval,(cond ((andd (null $(x)) (null $(y))) (quote hello)) ((andd (nott (atom $(x))) (nott (atom $(y)))) (cons (list (car $(x)) (car $(y))) (pair (cdr $(x)) (cdr $(y)))))))
 append=$(call seval,(cond ((null $(x)) $(y)) ((quote t) (cons (car $(x)) (append (cdr $(x))$(y))))))
 assoc=$(call seval,(cond ((eq (caar $(y)) $(x)) (cadar $(y))) ((quote t) (assoc $(x) (cdr $(y))))))
 evcon=$(call seval,(cond ((leval (caar $(x)) $(y)) (leval (cadar $(x)) $(y))) ((quote t) (evcon (cdr $(x)) $(y)))))
+evlis=$(call seval,(cond ((null $(x)) (quote ())) ((quote t) (cons (leval (car $(x)) $(y)) (evlis (cdr $(x)) $(y))))))
 #
 #eval function
 #
@@ -70,12 +75,13 @@ condcar=(eq (car $(x)) (quote car)) (car (leval (cadr $(x)) $(y)))
 condcdr=(eq (car $(x)) (quote cdr)) (cdr (leval (cadr $(x)) $(y)))
 condcons=(eq (car $(x)) (quote cons)) (cons (leval (cadr $(x)) $(y)) (leval (caddr $(x)) $(y)))
 condcond=(eq (car $(x)) (quote cond)) (evcon (cdr $(x)) $(y))
+#condlambda=(eq (caar $(x)) (quote lambda)) (leval (caddar $(x)) (append (pair (cadar $(x)) (evlis (cdr $(x)) $(y))) $(y)))
 #
 leval=$(call seval,(cond ((atom $(x)) (assoc $(x) $(y))) ((atom (car $(x))) (cond ($(condquote)) ($(condatom)) ($(condeq)) ($(condcar)) ($(condcdr)) ($(condcons)) ($(condcond))((quote t) $(call seval,$(x))) ) ) ((quote t) (display $(x)))))
 
 .PHONY: all intrinsic primitives functions lispeval
-all:lispeval 
-lispeval:
+all: functions lispeval 
+lispeval:	
 	@printf "(leval 'x '((x a)))=$(call seval,(leval (quote x) (quote ((x a)))))\n"
 	@printf "(leval x '((x a)))=$(call seval,(leval x (quote ((x a)))))\n"
 	@printf "(leval '(quote a) '())=$(call seval,(leval (quote (quote a)) (quote ())))\n"
@@ -103,21 +109,23 @@ functions:
 	@printf "(cadr (quote (a b)))=$(call seval,(cadr (quote (a b))))\n"
 	@printf "(car (quote (t t)))=$(call seval,(car (quote (t t))))\n"
 	@printf "(cadr (quote (t t)))=$(call seval,(cadr (quote (t t))))\n"
-	@printf "(andd (quote (t t)))=$(call seval,(andd (quote (t t))))\n"
-	@printf "(andd (quote (() t)))=$(call seval,(andd (quote (() t))))\n"
-	@printf "(andd (quote (t ())))=$(call seval,(andd (quote (t ()))))\n"
-	@printf "(andd (quote (() ())))=$(call seval,(andd (quote (() ()))))\n"
+	@printf "(andd 't 't)=$(call seval,(andd (quote t) (quote t)))\n"
+	@printf "(andd '() '())=$(call seval,(andd (quote ()) (quote t)))\n"
+	@printf "(andd 't '())=$(call seval,(andd (quote t) (quote ())))\n"
+	@printf "(null '())=$(call seval,(null (quote ())))\n"
+	@printf "(null 'a)=$(call seval,(null (quote a)))\n"
 	@printf "(null (car (quote (()(a b)))))=$(call seval,(null (car (quote (()(a b))))))\n"
 	@printf "(cadr (quote ((a b)(c d))))=$(call seval,(cadr (quote ((a b)(c d)))))\n"
 	@printf "(caar (quote ((a b)(c d))))=$(call seval,(caar (quote ((a b)(c d)))))\n"
 	@printf "(cdar (quote ((a b)(c d))))=$(call seval,(cdar (quote ((a b)(c d)))))\n"
-	@printf "(list (quote ()))=$(call seval,(list (quote ())))\n"
-	@printf "(list (quote (a b c)))=$(call seval,(list (quote (a b c))))\n"
-	@printf "(null (quote ())=$(call seval,(null (quote ())))\n"
+	@printf "(list '() '())=$(call seval,(list (quote ()) (quote ())))\n"
+	@printf "(list 'a 'b )=$(call seval,(list (quote a) (quote b)))\n"
 	@printf "(append (quote ())(quote (a b)))=$(call seval,(append (quote ())(quote (a b))))\n"
 	@printf "(append (quote (a b)) (quote (c d)))=$(call seval,(append (quote (a b))(quote (c d))))\n"
 	@printf "(assoc (quote x) (quote ((x a))))=$(call seval,(assoc (quote x) (quote ((x a)))))\n"
 	@printf "(assoc (quote y) (quote ((x a)(y b))))=$(call seval,(assoc (quote y) (quote ((x a)(y b)))))\n"
+	@printf "(pair '() '())=$(call seval,(pair (quote ()) (quote ())))\n"
+	@printf "(pair '(x y z) '(a b c))=$(call seval,(pair (quote (x y z)) (quote (a b c))))\n"
 intrinsic:
 	@printf "expand,(a b c)=$(call expand,(a b c))\n"
 	@printf "subst ( ) to () =$(subst ( ),(),( ))\n"
