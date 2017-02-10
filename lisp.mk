@@ -75,13 +75,15 @@ condcar=(eq (car $(x)) (quote car)) (car (leval (cadr $(x)) $(y)))
 condcdr=(eq (car $(x)) (quote cdr)) (cdr (leval (cadr $(x)) $(y)))
 condcons=(eq (car $(x)) (quote cons)) (cons (leval (cadr $(x)) $(y)) (leval (caddr $(x)) $(y)))
 condcond=(eq (car $(x)) (quote cond)) (evcon (cdr $(x)) $(y))
-#condlambda=(eq (caar $(x)) (quote lambda)) (leval (caddar $(x)) (append (pair (cadar $(x)) (evlis (cdr $(x)) $(y))) $(y)))
+condlambda=(eq (caar $(x)) (quote lambda)) (leval (caddar $(x)) (append (pair (cadar $(x)) (evlis (cdr $(x)) $(y))) $(y)))
 #
-leval=$(call seval,(cond ((atom $(x)) (assoc $(x) $(y))) ((atom (car $(x))) (cond ($(condquote)) ($(condatom)) ($(condeq)) ($(condcar)) ($(condcdr)) ($(condcons)) ($(condcond))((quote t) $(call seval,$(x))) ) ) ((quote t) (display $(x)))))
+leval=$(call seval,(cond ((atom $(x)) (assoc $(x) $(y))) ((atom (car $(x))) (cond ($(condquote)) ($(condatom)) ($(condeq)) ($(condcar)) ($(condcdr)) ($(condcons)) ($(condcond)) ($(condlambda)) ((quote t) $(call seval,$(x))) ) ) ((quote t) (display $(x)))))
 
 .PHONY: all intrinsic primitives functions lispeval
-all: functions lispeval 
+all: lispeval 
 lispeval:	
+	@printf "(leval '((lambda (x) (cons x '(b))) 'a)=$(call seval,(leval (quote ((lambda (x) (cons x (quote (b)))) (quote a)))(quote ())))\n"
+rest:
 	@printf "(leval 'x '((x a)))=$(call seval,(leval (quote x) (quote ((x a)))))\n"
 	@printf "(leval x '((x a)))=$(call seval,(leval x (quote ((x a)))))\n"
 	@printf "(leval '(quote a) '())=$(call seval,(leval (quote (quote a)) (quote ())))\n"
