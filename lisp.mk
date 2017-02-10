@@ -59,24 +59,22 @@ y=$(call getarg2,$(1))
 display=display:$(1)
 append=$(call seval,(cond ((null $(x)) $(y)) ((quote t) (cons (car $(x)) (append (cdr $(x))$(y))))))
 assoc=$(call seval,(cond ((eq (caar $(y)) $(x)) (cadar $(y))) ((quote t) (assoc $(x) (cdr $(y))))))
+evcon=$(call seval,(cond ((leval (caar $(x)) $(y)) (leval (cadar $(x)) $(y))) ((quote t) (evcon (cdr $(x)) $(y)))))
 #
 #eval function
 #
-#leval=x:$(x) y:$(y) i:$(call seval,(cadr $(x))) j:$(call seval,(atom $(call seval,(cadr $(x))))) leval:$(call seval,(cond ((atom $(x)) (assoc $(x) $(y))) ((atom (car $(x))) (cond ((eq (car $(x)) (quote quote)) (cadr $(x))) ((eq (car $(x)) (quote atom)) (atom $(call seval,(cadr $(x))))) ((quote t) (quote end1)) ) ) ((quote t) (quote end2))))
 condquote=(eq (car $(x)) (quote quote)) (cadr $(x))
 condatom=(eq (car $(x)) (quote atom)) (atom (leval (cadr $(x)) $(y)))
 condeq=(eq (car $(x)) (quote eq)) (eq (leval (cadr $(x)) $(y)) (leval (caddr $(x)) $(y)))
 condcar=(eq (car $(x)) (quote car)) (car (leval (cadr $(x)) $(y)))
 condcdr=(eq (car $(x)) (quote cdr)) (cdr (leval (cadr $(x)) $(y)))
 condcons=(eq (car $(x)) (quote cons)) (cons (leval (cadr $(x)) $(y)) (leval (caddr $(x)) $(y)))
-evcon=(cond ((eval (caar $(x)) $(y)) (eval (cadar $(x)) $(y))) ((quote t) (evcon (cdr $(x)) $(y))))
-condcond=((eq (car $(x)) (quote cond)) (evcon (cdr $(x)) $(y)))
-condelse=((quote t) (leval (cons (assoc (car $(x)) $(y)) (cdr $(x))) $(y)))))
-
+condcond=(eq (car $(x)) (quote cond)) (evcon (cdr $(x)) $(y))
+#
 leval=$(call seval,(cond ((atom $(x)) (assoc $(x) $(y))) ((atom (car $(x))) (cond ($(condquote)) ($(condatom)) ($(condeq)) ($(condcar)) ($(condcdr)) ($(condcons)) ($(condcond))((quote t) $(call seval,$(x))) ) ) ((quote t) (display $(x)))))
-#leval=$(call seval, (cond  ((eq (car $(x)) (quote atom)) (atom (leval (cadr $(x)) $(y)))) ((quote t) $(call seval,$(x))) ) )
+
 .PHONY: all intrinsic primitives functions lispeval
-all: lispeval 
+all:lispeval 
 lispeval:
 	@printf "(leval 'x '((x a)))=$(call seval,(leval (quote x) (quote ((x a)))))\n"
 	@printf "(leval x '((x a)))=$(call seval,(leval x (quote ((x a)))))\n"
